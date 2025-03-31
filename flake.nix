@@ -8,7 +8,7 @@
       systems = lib.systems.flakeExposed;
       devShell = {
         packages = pkgs: [
-          grain.packages.${pkgs.system}.default # Grain compiler
+          grain.packages.${pkgs.system}.preview # Grain compiler
           pkgs.go-task # task command - script runner
         ];
       };

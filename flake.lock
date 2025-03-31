@@ -41,11 +41,11 @@
         "flakelight": "flakelight_2"
       },
       "locked": {
-        "lastModified": 1738296446,
-        "narHash": "sha256-RNtO64ACYAA4XwjAzH8MT/xfBEd1drW/c5iAb1UyHDI=",
+        "lastModified": 1743398018,
+        "narHash": "sha256-IS4UCZ8KUxad9WOsthtrRPx19tYJOEzd4TeX+CFa83c=",
         "owner": "spotandjake",
         "repo": "grain-nix",
-        "rev": "b871cd492bb6534e45b583f703affdd6b0aa8910",
+        "rev": "b69cdbc831d6fe21edfaa042d3f429effe177bca",
         "type": "github"
       },
       "original": {
