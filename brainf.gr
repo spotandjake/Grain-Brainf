@@ -1,0 +1,171 @@
+/**
+ * Grain implementation of Brainf.
+ *
+ * This implementation is not optimized for speed but rather written in a functional style.
+ */
+module BrainF
+
+from "int8" include Int8
+from "buffer" include Buffer
+from "bytes" include Bytes
+from "list" include List
+from "array" include Array
+from "string" include String
+from "char" include Char
+
+// Not using functional style with memory because that would be too inefficient
+let readByte = ((memory, dataPointer)) => {
+  if (dataPointer >= Buffer.length(memory)) {
+    0s
+  } else {
+    Buffer.getInt8(dataPointer, memory)
+  }
+}
+let changeByte = (change, (memory, dataPointer) as programState) => {
+  if (dataPointer >= Buffer.length(memory)) {
+    // TODO(grain-lang/grain#2260): Resize the buffer using Buffer.resize
+    let size = Buffer.length(memory)
+    let newSize = dataPointer - size + 1
+    let newMemory = Bytes.make(newSize)
+    Buffer.addBytes(newMemory, memory)
+  }
+  Buffer.setInt8(dataPointer, Int8.(+)(readByte(programState), change), memory)
+}
+
+/**
+ * Represents a Brainf instruction.
+ */
+provide enum rec Instruction {
+  /** Represents a brainf loop, [<instructions>] */
+  Loop(List<Instruction>),
+  /** Represents a brainf pointer increment, > */
+  IncrPtr,
+  /** Represents a brainf pointer decrement, < */
+  DecrPtr,
+  /** Represents a brainf value increment, + */
+  IncrVal,
+  /** Represents a brainf value decrement, - */
+  DecVal,
+  /** Represents a brainf output, . */
+  OutputVal,
+  /** Represents a brainf input, , */
+  InputVal,
+}
+let rec interpret = (
+  (memory, dataPointer) as programState=(Buffer.make(0), 0),
+  program,
+) => {
+  match (program) {
+    [instr, ...rest] => {
+      let (programState, rest) = match (instr) {
+        Loop(body) => match (readByte(programState)) {
+          0s => (programState, rest),
+          _ => (interpret(programState=programState, body), program),
+        },
+        IncrPtr => ((memory, dataPointer + 1), rest),
+        DecrPtr => ((memory, dataPointer - 1), rest),
+        IncrVal => {
+          changeByte(1s, programState)
+          (programState, rest)
+        },
+        DecVal => {
+          changeByte(-1s, programState)
+          (programState, rest)
+        },
+        OutputVal => {
+          print(Char.fromCode(Int8.toNumber(readByte(programState))), suffix="")
+          (programState, rest)
+        },
+        // TODO: Implement InputVal
+        InputVal => (programState, rest),
+      }
+      // This also mostly takes advantage of tail call optimization
+      interpret(programState=programState, rest)
+    },
+    [] => programState,
+  }
+}
+let rec toString = (program, buf=Buffer.make(32)) => {
+  let (c, rest) = match (program) {
+    [Loop(body), ...rest] => {
+      Buffer.addChar('[', buf)
+      toString(body, buf=buf)
+      (']', rest)
+    },
+    [IncrPtr, ...rest] => ('>', rest),
+    [DecrPtr, ...rest] => ('<', rest),
+    [IncrVal, ...rest] => ('+', rest),
+    [DecVal, ...rest] => ('-', rest),
+    [OutputVal, ...rest] => ('.', rest),
+    [InputVal, ...rest] => (',', rest),
+    // Done
+    [] => return buf,
+  }
+  Buffer.addChar(c, buf)
+  return toString(rest, buf=buf)
+}
+let rec fromString = (program=[], inLoop=false, stream) => {
+  // It may seem wierd to pass the program as an argument, but this allows tail call optimization
+  match (stream) {
+    // Loops
+    ['[', ...rest] => {
+      // This doesn't take advantage of tco so stack depth could be an issue (that is a lot of nested loops)
+      let (body, rest) = fromString(program=[], inLoop=true, rest)
+      fromString(program=[Loop(body), ...program], inLoop=inLoop, rest)
+    },
+    [']', ...rest] when inLoop => (List.reverse(program), rest),
+    // TODO: Log error position, maybe use results
+    [']', ..._] => fail "Unmatched brackets",
+    // Instructions
+    [rawInstr, ...rest] => {
+      let (program, rest) = match (rawInstr) {
+        '>' => ([IncrPtr, ...program], rest),
+        '<' => ([DecrPtr, ...program], rest),
+        '+' => ([IncrVal, ...program], rest),
+        '-' => ([DecVal, ...program], rest),
+        '.' => ([OutputVal, ...program], rest),
+        ',' => ([InputVal, ...program], rest),
+        _ => (program, rest),
+      }
+      fromString(program=program, inLoop=inLoop, rest)
+    },
+    // Done
+    [] => (List.reverse(program), []),
+  }
+}
+// External API
+
+/**
+ * Converts a string to a Brainf program.
+ *
+ * @param str: The string to convert
+ * @returns The Brainf program
+ */
+provide let fromString = str => {
+  let (body, _) = fromString(Array.toList(String.explode(str)))
+  body
+}
+
+/**
+ * Converts a Brainf program to a string.
+ *
+ * @param program: The Brainf program to convert
+ * @returns The string representation of the program
+ */
+provide let toString = program => Buffer.toString(toString(program))
+
+/**
+ * Interprets a Brainf program.
+ *
+ *
+ * Note: Currently does not support input instructions.
+ *
+ * This function will print the output of the program to the console.
+ *
+ * @param program: The Brainf program to interpret
+ *
+ * @returns The final state of the program, in the form of `(memory, dataPointer)`
+ */
+provide let interpret = program => interpret(program)
+
+// TODO: Implement compile

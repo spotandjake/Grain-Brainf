@@ -1,0 +1,10 @@
+# Macos
+.DS_Store
+
+# Grain
+*.gro
+*.wasm
+target/
+
+# Nix
+.direnv/

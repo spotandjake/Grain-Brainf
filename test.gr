@@ -1,0 +1,9 @@
+module Test
+
+from "./brainf.gr" include BrainF
+
+let ast = BrainF.fromString(
+  "++++++++[>++++[>++>+++>+++>+<<<<-]>+>+>->>+[<]<-]>>.>---.+++++++..+++.>>.<-.<.+++.------.--------.>>+.>++."
+)
+print(BrainF.toString(ast))
+BrainF.interpret(ast)

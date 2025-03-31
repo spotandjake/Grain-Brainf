@@ -1,0 +1,21 @@
+version: '3'
+
+tasks:
+  default:
+    cmds:
+      - grain test.gr
+  
+  doc:
+    cmds:
+      - grain doc brainf.gr -o brainf.md
+
+  format:
+    cmds:
+      - grain format brainf.gr -o brainf.gr
+      - grain format test.gr -o test.gr
+
+  clean:
+    cmds:
+      - rm -f *.wasm
+      - rm -f *.gro
+      - rm -rf target/
